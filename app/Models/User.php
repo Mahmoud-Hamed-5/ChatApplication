@@ -24,7 +24,8 @@ class User extends Authenticatable
         'token',
         'connection_id',
         'user_status',
-        'user_image'
+        'user_image',
+        'gender'
     ];
 
     /**

@@ -2,6 +2,10 @@
 
 @section('content')
 
+@php
+    $genderArray = ['Male' , 'Female'];
+@endphp
+
 <div class="row justify-content-center">
     <div class="col-md-4">
         @if ($message = Session::get('success'))
@@ -24,6 +28,17 @@
                     </div>
 
                     <div class="form-group mb-3">
+                        <label>Gender</label>
+                        <select class="form-control" name="gender">
+                            @foreach ($genderArray as $item)
+                            <option value="{{$item}}" {{($row->gender == $item) ? 'selected':''}}>
+                                {{$item}}
+                            </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div class="form-group mb-3">
                         <input type="text" name="email" class="form-control" value="{{ $row->email }}" />
                         @if ($errors->has('email'))
                         <span class="text-danger">{{ $errors->first('email') }}</span>
@@ -42,6 +57,12 @@
                         <br />
                         @if ($row->user_image != '')
                         <img src="{{ asset('images/profile-images/'.$row->user_image) }}" width="150" class="img-thumbnail" />
+                        @else
+                            @if ($row->gender == 'Male')
+                            <img src="{{ asset('images/profile-images/blank-profile-male.jpg') }}" width="150" class="img-thumbnail" />
+                            @else
+                            <img src="{{ asset('images/profile-images/blank-profile-female.jpg') }}" width="150" class="img-thumbnail" />
+                            @endif
                         @endif
                         <input type="hidden" name="hidden_user_image" value="{{ $row->user_image }}" />
                     </div>

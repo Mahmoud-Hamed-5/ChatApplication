@@ -6,8 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Facades\Storage;
 
 class AuthController extends Controller
 {
@@ -25,16 +27,21 @@ class AuthController extends Controller
     {
         $request->validate([
             'name'         =>   'required',
+            'gender'       =>   'required|in:Male,Female',
             'email'        =>   'required|email|unique:users',
             'password'     =>   'required|min:6'
         ]);
 
         $data = $request->all();
 
+        $user_image = '' ;
+
         User::create([
-            'name'  =>  $data['name'],
-            'email' =>  $data['email'],
-            'password' => Hash::make($data['password'])
+            'name'       =>  $data['name'],
+            'gender'     =>  $data['gender'],
+            'email'      =>  $data['email'],
+            'password'   =>  Hash::make($data['password']),
+            'user_image' =>  $user_image
         ]);
 
         return redirect('login')->with('success', 'Registration Completed, now you can login');
@@ -69,6 +76,7 @@ class AuthController extends Controller
             return view('Chat');
         }
 
+        error_log('sssss');
         return redirect('login')->with('success', 'you are not allowed to access');
     }
 

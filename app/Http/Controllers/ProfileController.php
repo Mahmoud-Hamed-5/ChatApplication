@@ -26,9 +26,11 @@ class ProfileController extends Controller
     public function validate_profile(Request $request)
     {
         $request->validate([
-            'name'      =>  'required',
-            'email'     =>  'required|email',
-            'user_image'   =>   'image|mimes:jpg,png,jpeg|max:2048|dimensions:min_width=100,min_height=100,max_width=1100,max_height=1100'
+            'name'       =>  'required',
+            'gender'     =>  'required|in:Male,Female',
+            'email'      =>  'required|email',
+            'user_image' =>  'image|mimes:jpg,png,jpeg|max:2048|dimensions:min_width=100,min_height=100,max_width=1100,max_height=1100'
+
         ]);
 
         $user_image = $request->hidden_user_image;
@@ -39,7 +41,6 @@ class ProfileController extends Controller
         {
             //$user_image = time() . '.' . $request->user_image->getClientOriginalExtension();
             $user_image =  time() . '-' . $request->user_image->getClientOriginalName();
-
             $request->user_image->move(public_path('images/profile-images/'), $user_image);
 
             $old_image = public_path('images\\profile-images\\') . $user->user_image;
@@ -49,6 +50,7 @@ class ProfileController extends Controller
 
 
         $user->name = $request->name;
+        $user->gender = $request->gender;
 
         $user->email = $request->email;
 
