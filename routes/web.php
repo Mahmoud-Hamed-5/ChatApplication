@@ -32,7 +32,7 @@ Route::controller(AuthController::class)->group(function(){
 
     Route::post('validate_login', 'validate_login')->name('validate_login');
 
-    Route::get('dashboard', 'dashboard')->name('dashboard');
+    Route::get('Chat', 'chat')->name('Chat');
 });
 
 Route::controller(ProfileController::class)->group(function(){
