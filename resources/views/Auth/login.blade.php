@@ -15,7 +15,7 @@
 		<div class="card">
 			<div class="card-header">Login</div>
 			<div class="card-body">
-				<form action="{{ route('sample.validate_login') }}" method="post">
+				<form action="{{ route('validate_login') }}" method="post">
 					@csrf
 					<div class="form-group mb-3">
 						<input type="text" name="email" class="form-control" placeholder="Email" />

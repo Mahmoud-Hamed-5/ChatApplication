@@ -6,7 +6,8 @@
 	<div class="card-header">Dashboard</div>
 	<div class="card-body">
 
-		You are Login in Laravel 9 Custom Login Registration Application.
+		You are Logged in Chat Application.
+
 	</div>
 </div>
 

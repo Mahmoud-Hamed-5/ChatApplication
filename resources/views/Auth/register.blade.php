@@ -7,7 +7,7 @@
 		<div class="card">
 		<div class="card-header">Registration</div>
 		<div class="card-body">
-			<form action="{{ route('sample.validate_registration') }}" method="POST">
+			<form action="{{ route('validate_registration') }}" method="POST">
 				@csrf
 				<div class="form-group mb-3">
 					<input type="text" name="name" class="form-control" placeholder="Name" />
