@@ -34,7 +34,7 @@ class AuthController extends Controller
 
         $data = $request->all();
 
-        $user_image = '' ;
+        $user_image = '';
 
         User::create([
             'name'       =>  $data['name'],
@@ -45,7 +45,6 @@ class AuthController extends Controller
         ]);
 
         return redirect('login')->with('success', 'Registration Completed, now you can login');
-
     }
 
     function validate_login(Request $request)
@@ -57,8 +56,7 @@ class AuthController extends Controller
 
         $credentials = $request->only('email', 'password');
 
-        if(Auth::attempt($credentials))
-        {
+        if (Auth::attempt($credentials)) {
             $token = md5(uniqid());
             User::where('id', Auth::id())->update(['token' => $token]);
 
@@ -66,17 +64,14 @@ class AuthController extends Controller
         }
 
         return redirect('login')->with('success', 'Login details are not valid');
-
     }
 
     function chat()
     {
-        if(Auth::check())
-        {
+        if (Auth::check()) {
             return view('Chat');
         }
 
-        error_log('sssss');
         return redirect('login')->with('success', 'you are not allowed to access');
     }
 

@@ -17,8 +17,8 @@ return new class extends Migration
             $table->enum('gender', ['Male', 'Female']);
             $table->string('token')->default('');
             $table->integer('connection_id')->default(0);
-            $table->enum('user_status', ['Online', 'Offline'])->default('Online');
-            $table->string('user_image')->default('');
+            $table->enum('user_status', ['Online', 'Offline']);
+            $table->string('user_image');
         });
     }
 
