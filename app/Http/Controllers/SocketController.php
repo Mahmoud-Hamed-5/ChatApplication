@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Chat;
 use App\Models\Chat_request;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -299,6 +300,72 @@ class SocketController extends Controller implements MessageComponentInterface
                     }
                 }
             }
+
+            if ($data->type == 'request_send_message')
+            {
+                //save chat message in database
+                $chat = new Chat();
+
+                $chat->from_user_id = $data->from_user_id;
+                $chat->to_user_id = $data->to_user_id;
+                $chat->chat_message = $data->message;
+                $chat->message_status = 'Not Send';
+
+                $chat->save();
+
+                $sender_connection_id = User::select('connection_id')
+                    ->where('id', $data->from_user_id)
+                    ->get();
+
+                $receiver_connection_id = User::select('connection_id')
+                    ->where('id', $data->to_user_id)
+                    ->get();
+
+                foreach ($this->clients as $client) {
+                    if ($client->resourceId == $receiver_connection_id[0]->connection_id
+                        || $client->resourceId == $sender_connection_id[0]->connection_id)
+                    {
+                        $send_data['message'] = $data->message;
+                        $send_data['from_user_id'] = $data->from_user_id;
+                        $send_data['to_user_id'] = $data->to_user_id;
+
+                        $client->send(json_encode($send_data));
+                    }
+                }
+
+            }
+
+
+            if ($data->type == 'request_chat_history')
+            {
+                //
+                $chat_data =Chat::select('id', 'from_user_id', 'to_user_id', 'chat_message', 'message_status')
+                            ->where(function($query) use ($data) {
+                                $query->where('from_user_id', $data->from_user_id)
+                                      ->where('to_user_id', $data->to_user_id);
+                            })
+                            ->orWhere(function($query) use ($data) {
+                                $query->where('from_user_id', $data->to_user_id)
+                                      ->where('to_user_id', $data->from_user_id);
+                            })
+                            ->orderBy('id', 'ASC')
+                            ->get();
+
+                $send_data['chat_history'] = $chat_data;
+
+                $receiver_connection_id = User::select('connection_id')
+                    ->where('id', $data->from_user_id)
+                    ->get();
+
+                foreach ($this->clients as $client) {
+                    if ($client->resourceId == $receiver_connection_id[0]->connection_id)
+                    {
+                        $client->send(json_encode($send_data));
+                    }
+                }
+
+            }
+
         }
     }
 

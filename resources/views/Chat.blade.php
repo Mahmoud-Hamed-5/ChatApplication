@@ -125,7 +125,7 @@
 						<div class="col col-9">` + user_image + `&nbsp;` + data.data[count].name + `</div>
 						<div class="col col-3">
 							<button type="button"  title="Send chat request" name="send_request" class="btn btn-primary btn-sm float-end"
-                            onclick="send_request(this, ` + from_user_id + `, ` + data.data[count].id + `)"><i class="fas fa-paper-plane"></i></button>
+                            onclick="send_request(this, ` + from_user_id + `, ` + data.data[count].id + `)"><i class="fa-solid fa-user-plus"></i></button>
 						</div>
 					</div>
 				    </li>
@@ -217,15 +217,16 @@
         if (data.response_connected_chat_user) {
             var html = '<div class="list-group">';
 
-            if (data.data.length > 0)
-            {
-                for (var count = 0; count < data.data.length; count++)
-                {
-                    html +=`
-                            <a href="#" class="list-group-item d-flex justify-content-between align-items-start">
+            if (data.data.length > 0) {
+                for (var count = 0; count < data.data.length; count++) {
+                    html += `
+                        <a href="#" class="list-group-item d-flex justify-content-between align-items-start"
+                            onclick="make_chat_area(` + data.data[count].id + `, '` + data.data[count].name + `');
+                                     load_chat_data(` + from_user_id + ` , ` + data.data[count].id + `);">
 
-                            <div class="ms-2 me-auto">
+                        <div class="ms-2 me-auto">
                     `;
+
 
                     //var last_seen = '';
 
@@ -273,6 +274,65 @@
             document.getElementById('user_list').innerHTML = html;
 
             //check_unread_message();
+        }
+
+        if (data.message) {
+            var html = '';
+            if (data.from_user_id == from_user_id) {
+                html += `
+			    <div class="row">
+				    <div class="col col-3">&nbsp;</div>
+				    <div class="col col-9 alert alert-success text-dark shadow-sm">
+					    ` + data.message + `
+				    </div>
+			    </div>
+			    `;
+            } else {
+                html += `
+				<div class="row">
+					<div class="col col-9 alert alert-light text-dark shadow-sm">
+					` + data.message + `
+					</div>
+				</div>
+				`;
+            }
+
+            if (html != '') {
+                var previous_chat_element = document.querySelector('#chat_history');
+                var chat_history_element = document.querySelector('#chat_history');
+
+                chat_history_element.innerHTML = previous_chat_element.innerHTML + html;
+            }
+        }
+
+        if (data.chat_history) {
+            var html = '';
+            for (var count = 0; count < data.chat_history.length; count++) {
+
+                if (data.chat_history[count].from_user_id == from_user_id) {
+                    html += `
+			        <div class="row">
+				        <div class="col col-3">&nbsp;</div>
+				        <div class="col col-9 alert alert-success text-dark shadow-sm">
+					        ` + data.chat_history[count].chat_message + `
+				        </div>
+			        </div>
+			        `;
+                } else {
+                    html += `
+				    <div class="row">
+					    <div class="col col-9 alert alert-light text-dark shadow-sm">
+					    ` + data.chat_history[count].chat_message + `
+					    </div>
+				    </div>
+				    `;
+                }
+            }
+
+            document.querySelector('#chat_history').innerHTML = html;
+
+            //scroll_top();
+
         }
 
     };
@@ -337,6 +397,64 @@
             from_user_id: from_user_id,
             type: 'request_connected_chat_user'
         }
+
+        connection.send(JSON.stringify(data));
+    }
+
+    function make_chat_area(user_id, to_user_name) {
+        var html = `
+                <div id="chat_history"></div>
+                <div class="input-group mb-3">
+                    <textarea id="message_area" class"form-control" aria-describedby="send_button"></textarea>
+                    <button type="button" title="Send message" class="btn btn-success" id="send_button" onclick="send_chat_message()">
+                        <i class="fas fa-paper-plane"></i></button>
+                 </div>
+        `;
+
+        document.getElementById('chat_area').innerHTML = html;
+
+        document.getElementById('chat_header').innerHTML =
+            'Chat with <b>' + to_user_name + '</b>';
+
+        document.getElementById('close_chat_area').innerHTML =
+            '<button type="button" title="Close chat" id="close_chat" class="btn btn-danger btn-sm float-end"' +
+            'onclick="close_chat();"><i class="fas fa-times"></i></button>';
+
+        to_user_id = user_id;
+    }
+
+    function close_chat() {
+        document.getElementById('chat_header').innerHTML = 'Chat Box';
+        document.getElementById('close_chat_area').innerHTML = '';
+        document.getElementById('chat_area').innerHTML = '';
+        to_user_id = '';
+
+    }
+
+    function send_chat_message() {
+        document.querySelector('#send_button').disabled = true;
+
+        var message = document.getElementById('message_area').value.trim();
+
+        var data = {
+            message: message,
+            from_user_id: from_user_id,
+            to_user_id: to_user_id,
+            type: 'request_send_message'
+        };
+
+        connection.send(JSON.stringify(data));
+
+        document.querySelector('#message_area').value = '';
+        document.querySelector('#send_button').disabled = false;
+    }
+
+    function load_chat_data(from_user_id, to_user_id) {
+        var data = {
+            from_user_id: from_user_id,
+            to_user_id: to_user_id,
+            type: 'request_chat_history'
+        };
 
         connection.send(JSON.stringify(data));
     }
