@@ -262,6 +262,7 @@
                     html += `
                             &nbsp; ` + user_image + `&nbsp;<b>` + data.data[count].name + `</b>
                             </div>
+                            <span class="user_unread_message" data-id="` + data.data[count].id +`" id="user_unread_message_` + data.data[count].id + `"></span>
                         </a>
                     `;
                 }
@@ -273,28 +274,54 @@
 
             document.getElementById('user_list').innerHTML = html;
 
-            //check_unread_message();
+            check_unread_message();
         }
 
         if (data.message) {
+            check_unread_message();
             var html = '';
             if (data.from_user_id == from_user_id) {
+
+                var icon_style = '';
+
+                if (data.message_status == 'Sent') {
+                    // console.log(data.message_status);
+                    icon_style = '<span id="chat_status_' + data.chat_message_id +
+                        '" class="float-end"><i class="fas fa-check text-muted"></i></span>';
+                }
+
+                if (data.message_status == 'Delivered') {
+                    // console.log(data.message_status);
+                    icon_style = '<span id="chat_status_' + data.chat_message_id +
+                        '" class="float-end"><i class="fas fa-check-double text-muted"></i></span>';
+                }
+
+                if (data.message_status == 'Seen') {
+                    icon_style = '<span class="text-primary float-end" id="chat_status_' + data.chat_message_id +
+                        '"><i class="fas fa-check-double"></i></span>';
+                }
+
                 html += `
 			    <div class="row">
 				    <div class="col col-3">&nbsp;</div>
 				    <div class="col col-9 alert alert-success text-dark shadow-sm">
-					    ` + data.message + `
+					    ` + data.message + icon_style + `
 				    </div>
 			    </div>
-			    `;
+
+                `;
             } else {
-                html += `
-				<div class="row">
-					<div class="col col-9 alert alert-light text-dark shadow-sm">
-					` + data.message + `
-					</div>
-				</div>
-				`;
+                if (to_user_id != '') {
+                    html += `
+				        <div class="row">
+					        <div class="col col-9 alert alert-light text-dark shadow-sm">
+					            ` + data.message + `
+					        </div>
+				        </div>
+				    `;
+
+                    update_message_status(data.chat_message_id, data.from_user_id, data.to_user_id, 'Seen');
+                }
             }
 
             if (html != '') {
@@ -310,15 +337,37 @@
             for (var count = 0; count < data.chat_history.length; count++) {
 
                 if (data.chat_history[count].from_user_id == from_user_id) {
+
+                    var icon_style = '';
+
+                    if (data.chat_history[count].message_status == 'Sent') {
+                        icon_style = '<span id="chat_status_' + data.chat_history[count].id +
+                            '" class="float-end"><i class="fas fa-check text-muted"></i></span>';
+                    }
+
+                    if (data.chat_history[count].message_status == 'Delivered') {
+                        icon_style = '<span id="chat_status_' + data.chat_history[count].id +
+                            '" class="float-end"><i class="fas fa-check-double text-muted"></i></span>';
+                    }
+
+                    if (data.chat_history[count].message_status == 'Seen') {
+                        icon_style = '<span class="text-primary float-end" id="chat_status_' + data.chat_history[
+                            count].id + '"><i class="fas fa-check-double"></i></span>';
+                    }
+
                     html += `
 			        <div class="row">
 				        <div class="col col-3">&nbsp;</div>
 				        <div class="col col-9 alert alert-success text-dark shadow-sm">
-					        ` + data.chat_history[count].chat_message + `
+					        ` + data.chat_history[count].chat_message + icon_style + `
 				        </div>
 			        </div>
 			        `;
                 } else {
+                    if (data.chat_history[count].message != 'Seen') {
+                        update_message_status(data.chat_history[count].id, data.chat_history[count].from_user_id,
+                            data.chat_history[count].to_user_id, 'Seen');
+                    }
                     html += `
 				    <div class="row">
 					    <div class="col col-9 alert alert-light text-dark shadow-sm">
@@ -326,16 +375,58 @@
 					    </div>
 				    </div>
 				    `;
+                    // set the unread messages count to zero
+                    var count_unread_message_element = document.getElementById('user_unread_message_'+data.chat_history[count].from_user_id+'');
+                    count_unread_message_element.innerHTML = '';
                 }
             }
 
             document.querySelector('#chat_history').innerHTML = html;
 
-            //scroll_top();
+            scroll_top();
 
         }
 
+        if (data.update_message_status) {
+            var chat_status_element = document.querySelector('#chat_status_' + data.chat_message_id + '');
+
+            if (chat_status_element) {
+                if (data.update_message_status == 'Seen') {
+                    chat_status_element.innerHTML = '<i class="fas fa-check-double text-primary"></i>';
+                }
+
+                if (data.update_message_status == 'Delivered') {
+                    chat_status_element.innerHTML = '<i class="fas fa-check-double text-muted"></i>';
+                }
+            }
+
+            if (data.unread_msg) {
+                var count_unread_message_element = document.getElementById('user_unread_message_'+data.from_user_id+'');
+
+                if (count_unread_message_element) {
+                    var count_unread_message = count_unread_message_element.textContent;
+
+                    // if (count_unread_message == '') {
+                    //     count_unread_message = parseInt(0) + 1;
+                    // }else{
+                    //     count_unread_message = parseInt(count_unread_message) + 1;
+                    // }
+
+
+                    count_unread_message_element.innerHTML =
+                    '<span class="badge bg-danger rounded-pill">'+parseInt(data.unread_messages_count)+'</span>';
+                }
+            }
+        }
+
     };
+
+
+
+    function scroll_top() {
+        document.querySelector('#chat_history').scrollTop =
+         document.querySelector('#chat_history').scrollHeight;
+    }
 
     function load_unconnected_user(from_user_id) {
         var data = {
@@ -345,7 +436,6 @@
 
         connection.send(JSON.stringify(data));
     }
-
 
     function search_user(from_user_id, search_query) {
         if (search_query.length > 0) {
@@ -378,7 +468,6 @@
         load_unconnected_user(from_user_id);
         connection.send(JSON.stringify(data));
     }
-
 
     function process_chat_request(chat_request_id, from_user_id, to_user_id, action) {
         var data = {
@@ -447,6 +536,7 @@
 
         document.querySelector('#message_area').value = '';
         document.querySelector('#send_button').disabled = false;
+        //check_unread_message();
     }
 
     function load_chat_data(from_user_id, to_user_id) {
@@ -457,5 +547,31 @@
         };
 
         connection.send(JSON.stringify(data));
+    }
+
+    function update_message_status(chat_message_id, from_user_id, to_user_id, chat_message_status) {
+        var data = {
+            chat_message_id: chat_message_id,
+            from_user_id: from_user_id,
+            to_user_id: to_user_id,
+            chat_message_status: chat_message_status,
+            type: 'update_chat_status'
+        };
+
+        connection.send(JSON.stringify(data));
+    }
+
+    function check_unread_message() {
+        var unread_element = document.getElementsByClassName('user_unread_message');
+        for (var count = 0; count < unread_element.length; count++) {
+            var temp_user_id = unread_element[count].dataset.id;
+            var data = {
+                from_user_id: from_user_id,
+                to_user_id: temp_user_id,
+                type: 'check_unread_message'
+            };
+
+            connection.send(JSON.stringify(data));
+        }
     }
 </script>

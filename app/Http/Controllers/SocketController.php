@@ -301,17 +301,18 @@ class SocketController extends Controller implements MessageComponentInterface
                 }
             }
 
-            if ($data->type == 'request_send_message')
-            {
+            if ($data->type == 'request_send_message') {
                 //save chat message in database
                 $chat = new Chat();
 
                 $chat->from_user_id = $data->from_user_id;
                 $chat->to_user_id = $data->to_user_id;
                 $chat->chat_message = $data->message;
-                $chat->message_status = 'Not Send';
+                $chat->message_status = 'Sent';
 
                 $chat->save();
+
+                $chat_message_id = $chat->id;
 
                 $sender_connection_id = User::select('connection_id')
                     ->where('id', $data->from_user_id)
@@ -321,10 +322,27 @@ class SocketController extends Controller implements MessageComponentInterface
                     ->where('id', $data->to_user_id)
                     ->get();
 
+
+                //set the message status as sent
+                $send_data['message_status'] = 'Sent';
+
+                // check if the receiver is online
                 foreach ($this->clients as $client) {
-                    if ($client->resourceId == $receiver_connection_id[0]->connection_id
-                        || $client->resourceId == $sender_connection_id[0]->connection_id)
-                    {
+                    // if the reciever is online, update the message status to delivered
+                    if ($client->resourceId == $receiver_connection_id[0]->connection_id) {
+                        Chat::where('id', $chat_message_id)->update(['message_status' => 'Delivered']);
+
+                        $send_data['message_status'] = 'Delivered';
+                    }
+                }
+
+                // search all clients for sender and receiver, and send them the data
+                foreach ($this->clients as $client) {
+                    if (
+                        $client->resourceId == $receiver_connection_id[0]->connection_id
+                        || $client->resourceId == $sender_connection_id[0]->connection_id
+                    ) {
+                        $send_data['chat_message_id'] = $chat_message_id;
                         $send_data['message'] = $data->message;
                         $send_data['from_user_id'] = $data->from_user_id;
                         $send_data['to_user_id'] = $data->to_user_id;
@@ -332,24 +350,22 @@ class SocketController extends Controller implements MessageComponentInterface
                         $client->send(json_encode($send_data));
                     }
                 }
-
             }
 
 
-            if ($data->type == 'request_chat_history')
-            {
+            if ($data->type == 'request_chat_history') {
                 //
-                $chat_data =Chat::select('id', 'from_user_id', 'to_user_id', 'chat_message', 'message_status')
-                            ->where(function($query) use ($data) {
-                                $query->where('from_user_id', $data->from_user_id)
-                                      ->where('to_user_id', $data->to_user_id);
-                            })
-                            ->orWhere(function($query) use ($data) {
-                                $query->where('from_user_id', $data->to_user_id)
-                                      ->where('to_user_id', $data->from_user_id);
-                            })
-                            ->orderBy('id', 'ASC')
-                            ->get();
+                $chat_data = Chat::select('id', 'from_user_id', 'to_user_id', 'chat_message', 'message_status')
+                    ->where(function ($query) use ($data) {
+                        $query->where('from_user_id', $data->from_user_id)
+                            ->where('to_user_id', $data->to_user_id);
+                    })
+                    ->orWhere(function ($query) use ($data) {
+                        $query->where('from_user_id', $data->to_user_id)
+                            ->where('to_user_id', $data->from_user_id);
+                    })
+                    ->orderBy('id', 'ASC')
+                    ->get();
 
                 $send_data['chat_history'] = $chat_data;
 
@@ -358,14 +374,77 @@ class SocketController extends Controller implements MessageComponentInterface
                     ->get();
 
                 foreach ($this->clients as $client) {
-                    if ($client->resourceId == $receiver_connection_id[0]->connection_id)
-                    {
+                    if ($client->resourceId == $receiver_connection_id[0]->connection_id) {
                         $client->send(json_encode($send_data));
                     }
                 }
-
             }
 
+            if ($data->type == 'update_chat_status') {
+                //update chat status
+                Chat::where('id', $data->chat_message_id)
+                    ->update(['message_status' => $data->chat_message_status]);
+
+                $sender_connection_id = User::select('connection_id')
+                    ->where('id', $data->from_user_id)
+                    ->get();
+
+                foreach ($this->clients as $client) {
+                    if ($client->resourceId == $sender_connection_id[0]->connection_id) {
+                        $send_data['update_message_status'] = $data->chat_message_status;
+
+                        $send_data['chat_message_id'] = $data->chat_message_id;
+
+                        $client->send(json_encode($send_data));
+                    }
+                }
+            }
+
+            if ($data->type == 'check_unread_message') {
+                $chat_data = Chat::select('id', 'from_user_id', 'to_user_id')
+                    ->where('from_user_id', $data->to_user_id)
+                    ->where('to_user_id', $data->from_user_id)
+                    ->where('message_status', '!=', 'Seen')
+                    ->get();
+
+                $sender_connection_id = User::select('connection_id')
+                    ->where('id', $data->from_user_id)
+                    ->get();
+
+                $receiver_connection_id = User::select('connection_id')
+                    ->where('id', $data->to_user_id)
+                    ->get();
+
+                   // error_log("count". $chat_data->count());
+
+                // get count of unread messages
+                $unread_messages_count = $chat_data->count();
+                foreach ($chat_data as $row) {
+                    Chat::where('id', $row->id)
+                        ->update(['message_status' => 'Delivered']); // Seen
+
+                    foreach ($this->clients as $client) {
+                        if ($client->resourceId == $sender_connection_id[0]->connection_id) {
+                            $send_data['count_unread_message'] = 1;
+                            $send_data['unread_messages_count'] = $unread_messages_count;
+                            $send_data['chat_message_id'] = $row->id;
+                            $send_data['from_user_id'] = $row->from_user_id;
+                            $client->send(json_encode($send_data));
+                        }
+
+                        if ($client->resourceId == $receiver_connection_id[0]->connection_id) {
+                            $send_data['update_message_status'] = 'Delivered';
+                            $send_data['chat_message_id'] = $row->id;
+                            $send_data['unread_messages_count'] = $unread_messages_count;
+                            $send_data['unread_msg'] = 1;
+                            $send_data['from_user_id'] = $row->from_user_id;
+                            $client->send(json_encode($send_data));
+                        }
+
+                        //$client->send(json_encode($send_data));
+                    }
+                }
+            }
         }
     }
 
