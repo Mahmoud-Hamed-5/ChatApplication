@@ -275,15 +275,23 @@ class SocketController extends Controller implements MessageComponentInterface
                         $user_id = $user_id_row->to_user_id;
                     }
 
-                    $user_data = User::select('id', 'name', 'gender', 'user_image')
+                    $user_data = User::select('id', 'name', 'gender', 'user_image', 'user_status', 'updated_at')
                         ->where('id', $user_id)
                         ->first();
+
+                    if (date('Y-m-d') == date('Y-m-d', strtotime($user_data->updated_at))) {
+                        $last_seen = 'Last Seen At ' . date('H:i', strtotime($user_data->updated_at));
+                    } else {
+                        $last_seen = 'Last Seen At ' . date('d/m/Y H:i', strtotime($user_data->updated_at));
+                    }
 
                     $sub_data[] = array(
                         'id'          =>   $user_data->id,
                         'name'        =>   $user_data->name,
                         'gender'      =>   $user_data->gender,
-                        'user_image'  =>   $user_data->user_image
+                        'user_image'  =>   $user_data->user_image,
+                        'user_status' =>   $user_data->user_status,
+                        'last_seen'   =>   $last_seen
                     );
                 }
 
@@ -415,17 +423,15 @@ class SocketController extends Controller implements MessageComponentInterface
                     ->where('id', $data->to_user_id)
                     ->get();
 
-                   // error_log("count". $chat_data->count());
-
                 // get count of unread messages
                 $unread_messages_count = $chat_data->count();
                 foreach ($chat_data as $row) {
                     Chat::where('id', $row->id)
-                        ->update(['message_status' => 'Delivered']); // Seen
+                        ->update(['message_status' => 'Delivered']);
 
                     foreach ($this->clients as $client) {
                         if ($client->resourceId == $sender_connection_id[0]->connection_id) {
-                            $send_data['count_unread_message'] = 1;
+                            //$send_data['count_unread_message'] = 1;
                             $send_data['unread_messages_count'] = $unread_messages_count;
                             $send_data['chat_message_id'] = $row->id;
                             $send_data['from_user_id'] = $row->from_user_id;
@@ -457,7 +463,27 @@ class SocketController extends Controller implements MessageComponentInterface
 
         if (isset($queryarray['token'])) {
             User::where('token', $queryarray['token'])
-                ->update(['connection_id' => 0]);
+                ->update(['connection_id' => 0, 'user_status' => 'Offline']);
+
+            $user_id = User::select('id', 'updated_at')->where('token', $queryarray['token'])->get();
+
+            $data['id'] = $user_id[0]->id;
+
+            $data['status'] = 'Offline';
+
+            $updated_at = $user_id[0]->updated_at;
+
+            if (date('Y-m-d') == date('Y-m-d', strtotime($updated_at))) {
+                $data['last_seen'] = 'Last Seen at ' . date('H:i');
+            }else{
+                $data['last_seen'] = 'Last Seen at ' . date('d/m/Y H:i');
+            }
+
+            foreach ($this->clients as $client) {
+                if ($client->resourceId != $connection->resourceId) {
+                    $client->send(json_encode($data));
+                }
+            }
         }
     }
 

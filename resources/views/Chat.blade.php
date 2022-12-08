@@ -100,6 +100,29 @@
 
     connection.onmessage = function(e) {
         var data = JSON.parse(e.data);
+
+        if(data.status)
+        {
+            var online_status_icon = document.getElementsByClassName('online_status_icon');
+            for (var count = 0; count < online_status_icon.length; count++) {
+                if(online_status_icon[count].id == 'status_' + data.id){
+                    if(data.status == 'Online'){
+                        online_status_icon[count].classList.add('text-success');
+
+                        online_status_icon[count].classList.remove('text-danger');
+
+                        document.getElementById('last_seen_' + data.id).innerHTML = 'Online';
+                    }else {
+                        online_status_icon[count].classList.add('text-danger');
+
+                        online_status_icon[count].classList.remove('text-success');
+
+                        document.getElementById('last_seen_' + data.id).innerHTML = data.last_seen;
+                    }
+                }
+            }
+        }
+
         if (data.response_load_unconnected_user || data.response_search_user) {
             var html = '';
             if (data.data.length > 0) {
@@ -228,19 +251,19 @@
                     `;
 
 
-                    //var last_seen = '';
+                    var last_seen = '';
 
-                    // if (data.data[count].user_status == 'Online') {
-                    //     html += '<span class="text-success online_status_icon" id="status_' + data.data[count].id +
-                    //         '"><i class="fas fa-circle"></i></span>';
+                    if (data.data[count].user_status == 'Online') {
+                        html += '<span class="text-success online_status_icon" id="status_' + data.data[count].id +
+                            '"><i class="fas fa-circle"></i></span>';
 
-                    //     last_seen = 'Online';
-                    // } else {
-                    //     html += '<span class="text-danger online_status_icon" id="status_' + data.data[count].id +
-                    //         '"><i class="fas fa-circle"></i></span>';
+                        last_seen = 'Online';
+                    } else {
+                        html += '<span class="text-danger online_status_icon" id="status_' + data.data[count].id +
+                            '"><i class="fas fa-circle"></i></span>';
 
-                    //     last_seen = data.data[count].last_seen;
-                    // }
+                        last_seen = data.data[count].last_seen;
+                    }
 
                     var user_image = '';
 
@@ -261,8 +284,10 @@
 
                     html += `
                             &nbsp; ` + user_image + `&nbsp;<b>` + data.data[count].name + `</b>
+                            <div class="text-right"><small class="text-muted last_seen" id="last_seen_`+data.data[count].id+`">`+last_seen+`</small></div>
                             </div>
-                            <span class="user_unread_message" data-id="` + data.data[count].id +`" id="user_unread_message_` + data.data[count].id + `"></span>
+                            <span class="user_unread_message" data-id="` + data.data[count].id +
+                        `" id="user_unread_message_` + data.data[count].id + `"></span>
                         </a>
                     `;
                 }
@@ -278,7 +303,7 @@
         }
 
         if (data.message) {
-            check_unread_message();
+
             var html = '';
             if (data.from_user_id == from_user_id) {
 
@@ -308,8 +333,8 @@
 					    ` + data.message + icon_style + `
 				    </div>
 			    </div>
-
                 `;
+
             } else {
                 if (to_user_id != '') {
                     html += `
@@ -330,6 +355,9 @@
 
                 chat_history_element.innerHTML = previous_chat_element.innerHTML + html;
             }
+
+            check_unread_message();
+            scroll_top();
         }
 
         if (data.chat_history) {
@@ -376,7 +404,8 @@
 				    </div>
 				    `;
                     // set the unread messages count to zero
-                    var count_unread_message_element = document.getElementById('user_unread_message_'+data.chat_history[count].from_user_id+'');
+                    var count_unread_message_element = document.getElementById('user_unread_message_' + data
+                        .chat_history[count].from_user_id + '');
                     count_unread_message_element.innerHTML = '';
                 }
             }
@@ -401,20 +430,14 @@
             }
 
             if (data.unread_msg) {
-                var count_unread_message_element = document.getElementById('user_unread_message_'+data.from_user_id+'');
+                var count_unread_message_element = document.getElementById('user_unread_message_' + data
+                    .from_user_id + '');
 
                 if (count_unread_message_element) {
-                    var count_unread_message = count_unread_message_element.textContent;
-
-                    // if (count_unread_message == '') {
-                    //     count_unread_message = parseInt(0) + 1;
-                    // }else{
-                    //     count_unread_message = parseInt(count_unread_message) + 1;
-                    // }
-
 
                     count_unread_message_element.innerHTML =
-                    '<span class="badge bg-danger rounded-pill">'+parseInt(data.unread_messages_count)+'</span>';
+                        '<span class="badge bg-danger rounded-pill">' + parseInt(data.unread_messages_count) +
+                        '</span>';
                 }
             }
         }
@@ -425,7 +448,7 @@
 
     function scroll_top() {
         document.querySelector('#chat_history').scrollTop =
-         document.querySelector('#chat_history').scrollHeight;
+            document.querySelector('#chat_history').scrollHeight;
     }
 
     function load_unconnected_user(from_user_id) {
@@ -510,6 +533,17 @@
             'onclick="close_chat();"><i class="fas fa-times"></i></button>';
 
         to_user_id = user_id;
+
+        var input = document.getElementById("message_area");
+
+        input.addEventListener("keypress", function(event) {
+            // If the user presses the "Enter" key on the keyboard
+            if (event.key === "Enter") {
+                event.preventDefault();
+                // Trigger the button with a click to send the message
+                document.getElementById("send_button").click();
+            }
+        });
     }
 
     function close_chat() {
