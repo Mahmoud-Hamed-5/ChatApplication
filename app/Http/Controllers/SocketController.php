@@ -279,6 +279,7 @@ class SocketController extends Controller implements MessageComponentInterface
                         ->where('id', $user_id)
                         ->first();
 
+                        //User Last Seen
                     if (date('Y-m-d') == date('Y-m-d', strtotime($user_data->updated_at))) {
                         $last_seen = 'Last Seen At ' . date('H:i', strtotime($user_data->updated_at));
                     } else {

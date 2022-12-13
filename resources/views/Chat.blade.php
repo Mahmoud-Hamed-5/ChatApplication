@@ -106,13 +106,13 @@
             var online_status_icon = document.getElementsByClassName('online_status_icon');
             for (var count = 0; count < online_status_icon.length; count++) {
                 if(online_status_icon[count].id == 'status_' + data.id){
-                    if(data.status == 'Online'){
+                    if(data.status == 'Online'){ //User Online
                         online_status_icon[count].classList.add('text-success');
 
                         online_status_icon[count].classList.remove('text-danger');
 
                         document.getElementById('last_seen_' + data.id).innerHTML = 'Online';
-                    }else {
+                    }else { //User Offline .. Show Last Seen
                         online_status_icon[count].classList.add('text-danger');
 
                         online_status_icon[count].classList.remove('text-success');
